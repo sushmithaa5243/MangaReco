@@ -1,5 +1,10 @@
 import streamlit as st
-from recommender import recommend, anime
+from recommender.hybrid import hybrid_recommend
+from recommender.content_based import anime
+
+# ==========================================
+# PAGE CONFIG
+# ==========================================
 
 st.set_page_config(
     page_title="MangaReco",
@@ -7,115 +12,252 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("📚 MangaReco")
-st.subheader("AI-powered manga, manhwa and anime recommendation system")
+# ==========================================
+# CUSTOM CSS
+# ==========================================
 
-st.write(
-    "Select multiple titles you have already watched/read, "
-    "and get personalized recommendations."
-)
+st.markdown("""
+<style>
 
-# Genre explanation section
-with st.expander("📖 New reader? Learn common genres"):
+.main {
+    background-color: #0E1117;
+}
+
+.block-container{
+    padding-top:2rem;
+}
+
+.big-title{
+    font-size:52px;
+    font-weight:800;
+    color:white;
+}
+
+.sub-title{
+    font-size:20px;
+    color:#9ca3af;
+}
+
+.card{
+    background-color:#161B22;
+    padding:20px;
+    border-radius:15px;
+    margin-bottom:18px;
+    border:1px solid #30363d;
+}
+
+.metric{
+    text-align:center;
+    padding:15px;
+    border-radius:12px;
+    background:#161B22;
+    border:1px solid #30363d;
+}
+
+.footer{
+    text-align:center;
+    color:gray;
+    margin-top:50px;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# ==========================================
+# SIDEBAR
+# ==========================================
+
+with st.sidebar:
+
+    st.title("📚 MangaReco")
+
+    st.markdown("---")
+
+    st.markdown("## Hybrid AI System")
+
+    st.success("✔ Content-Based Filtering")
+
+    st.success("✔ Collaborative Filtering")
+
+    st.success("✔ Hybrid Recommendation")
+
+    st.markdown("---")
+
+    st.metric("Anime", "12,294")
+
+    st.metric("Ratings", "6.3 Million")
+
+    st.metric("AI Model", "Hybrid")
+
+    st.markdown("---")
 
     st.markdown("""
-    ### Isekai
-    Main character gets transported or reborn into another world.
+Built using
 
-    ### Shounen
-    Action/adventure stories aimed at younger audiences.
+- Python
+- Streamlit
+- Pandas
+- Scikit-Learn
+- Surprise (SVD)
+""")
 
-    ### Seinen
-    Mature stories with darker and deeper themes.
+# ==========================================
+# HERO SECTION
+# ==========================================
 
-    ### Slice of Life
-    Calm stories based on everyday life.
-
-    ### Murim
-    Martial arts world common in manhwa.
-
-    ### Regression
-    Character returns to the past to change events.
-
-    ### Psychological
-    Focuses on mind games, emotions and strategy.
-    """)
-
-# Title selection
-title_list = sorted(anime["name"].dropna().unique())
-
-selected_titles = st.multiselect(
-    "Choose titles you have read:",
-    title_list
+st.markdown(
+    "<div class='big-title'>📚 MangaReco</div>",
+    unsafe_allow_html=True
 )
 
-# Number of recommendations
+st.markdown(
+    "<div class='sub-title'>Hybrid AI Anime Recommendation System</div>",
+    unsafe_allow_html=True
+)
+
+st.write("")
+
+st.info("""
+This recommendation engine combines
+
+✅ TF-IDF Content-Based Filtering
+
+✅ Cosine Similarity
+
+✅ SVD Collaborative Filtering
+
+to generate personalized anime recommendations.
+""")
+
+# ==========================================
+# METRICS
+# ==========================================
+
+c1, c2, c3 = st.columns(3)
+
+with c1:
+    st.metric("Anime", "12,294")
+
+with c2:
+    st.metric("Ratings", "6.3 Million")
+
+with c3:
+    st.metric("Recommendation Model", "Hybrid AI")
+
+st.divider()
+
+# ==========================================
+# INPUTS
+# ==========================================
+
+left, right = st.columns([2,1])
+
+with left:
+
+    anime_list = sorted(anime["name"].dropna().unique())
+
+    selected = st.selectbox(
+        "🎬 Select an Anime",
+        anime_list
+    )
+
+with right:
+
+    user_id = st.number_input(
+        "👤 User ID",
+        min_value=1,
+        value=994
+    )
+
 top_n = st.slider(
-    "Number of recommendations",
-    3,
-    15,
-    5
+    "Number of Recommendations",
+    5,
+    20,
+    10
 )
 
-if st.button("Recommend"):
+st.write("")
 
-    if not selected_titles:
-        st.warning("Please select at least one title.")
+# ==========================================
+# BUTTON
+# ==========================================
+
+if st.button("🚀 Generate Recommendations", use_container_width=True):
+
+    with st.spinner("Generating AI Recommendations..."):
+
+        recommendations = hybrid_recommend(
+            user_id=user_id,
+            anime_title=selected,
+            top_n=top_n
+        )
+
+    if recommendations is None or recommendations.empty:
+
+        st.error("No recommendations found.")
 
     else:
 
-        all_results = []
+        st.success("Recommendations Generated!")
 
-        # Collect recommendations
-        for title in selected_titles:
+        st.write("")
 
-            try:
-                recs = recommend(title, top_n)
+        for _, row in recommendations.iterrows():
 
-                for r in recs:
-                    if isinstance(r, dict):
-                        all_results.append(r)
+            with st.container():
 
-            except:
-                pass
+                st.markdown(f"""
+<div class="card">
 
-        # Remove duplicates
-        seen = set()
-        final_results = []
+# 🎬 {row['Anime']}
 
-        for item in all_results:
+⭐ **Community Rating:** {row['Community Rating']}
 
-            if (
-                item["title"] not in seen
-                and item["title"] not in selected_titles
-            ):
+🤖 **Predicted Rating:** {row['Predicted Rating']}
 
-                seen.add(item["title"])
-                final_results.append(item)
+🎭 **Genre:** {row['Genre']}
 
-        # Limit final recommendations
-        final_results = final_results[:top_n]
+</div>
+""", unsafe_allow_html=True)
 
-        st.subheader("🔥 Recommended For You")
+# ==========================================
+# PIPELINE
+# ==========================================
 
-        if not final_results:
-            st.error("No recommendations found.")
+st.divider()
 
-        else:
+st.subheader("⚙ Recommendation Pipeline")
 
-            for item in final_results:
+st.code("""
+User Input
+      │
+      ▼
+TF-IDF Vectorization
+      │
+      ▼
+Cosine Similarity
+      │
+      ▼
+Top 50 Similar Anime
+      │
+      ▼
+SVD Collaborative Filtering
+      │
+      ▼
+Personalized Ranking
+      │
+      ▼
+Top Recommendations
+""")
 
-                with st.container(border=True):
+# ==========================================
+# FOOTER
+# ==========================================
 
-                    st.markdown(f"## {item['title']}")
+st.markdown("""
+<div class='footer'>
 
-                    st.write(f"**Genre:** {item['genre']}")
+Built with ❤️ using Python • Streamlit • Pandas • Scikit-Learn • Surprise (SVD)
 
-                    st.write(f"**Community Rating:** {item['rating']}")
-
-                    st.write(
-                        "**Where to read/watch:** "
-                        "Check official sources like "
-                        "WEBTOON, Manga Plus, Tapas, Crunchyroll, "
-                        "Kodansha or publisher websites."
-                    )
+</div>
+""", unsafe_allow_html=True)

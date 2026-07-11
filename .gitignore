@@ -1,3 +1,29 @@
-venv/
+# Python cache
 __pycache__/
-*.pyc
+*.py[cod]
+
+# Virtual environment
+venv/
+.env
+
+# IDE files
+.vscode/
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Python packaging
+build/
+dist/
+*.egg-info/
+
+# Streamlit cache
+.streamlit/cache/
+
+# Logs
+*.log
